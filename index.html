@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>老賴紅茶（600 cc）CPI 月度走勢</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f9; color: #333;
+            margin: 0; padding: 20px; line-height: 1.6;
+        }
+
+        /* 首頁標題區：Logo + 標題 */
+        #page-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 80%;
+            max-width: 800px;
+            margin: 0 auto 20px;
+        }
+        #page-header img#logo {
+            width: 80px;
+            height: auto;
+            margin-right: 20px;
+        }
+        #page-header h1 {
+            margin: 0;
+            font-size: 2em;
+            color: #2a3f54;
+            text-align: center;
+            flex: 1;
+        }
+
+        /* 新增、查詢按鈕區 */
+        #controls {
+            width: 80%; max-width: 800px;
+            margin: 0 auto 20px;
+            text-align: center;
+        }
+        #controls > * {
+            margin: 0 5px 10px;
+            padding: 8px 12px;
+            font-size: 1em;
+        }
+        #add-data-btn, #filter-btn, #reset-btn {
+            background-color: #009879;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #add-data-btn:hover, #filter-btn:hover, #reset-btn:hover {
+            background-color: #007f63;
+        }
+        #controls input[type="month"] {
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        /* 折線圖容器 */
+        #chart-container {
+            width: 80%; max-width: 800px;
+            margin: 0 auto 40px;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+
+        /* 表格美化 */
+        table {
+            width: 80%; margin: 0 auto 40px;
+            border-collapse: collapse; background-color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,.1); border-radius: 4px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px 15px; text-align: center;
+        }
+        thead th {
+            background-color: #009879; color: #fff;
+            text-transform: uppercase; letter-spacing: .05em;
+            font-size: .95em;
+        }
+        tbody tr:nth-child(even) { background-color: #f3f3f3; }
+        tbody tr:hover { background-color: #e1f5f2; }
+
+        @media (max-width: 768px) {
+            #page-header, #chart-container, table, #controls { width: 100%; }
+            th, td { padding: 8px 10px; font-size: .9em; }
+            #controls > * { margin-bottom: 8px; }
+            #page-header img#logo { width: 60px; margin-right: 10px; }
+            #page-header h1 { font-size: 1.5em; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 1. Logo + 標題 -->
+<div id="page-header">
+    <img id="logo" src="laolai-logo.png" alt="老賴紅茶 店標">
+    <h1>老賴紅茶（600 cc）CPI 月度走勢</h1>
+</div>
+
+<!-- 2. 新增 & 篩選 區塊 -->
+<div id="controls">
+    <button id="add-data-btn">新增資料</button>
+    <label>起：<input id="start-month" type="month"></label>
+    <label>迄：<input id="end-month" type="month"></label>
+    <button id="filter-btn">查詢</button>
+    <button id="reset-btn">重置</button>
+</div>
+
+<!-- 3. 折線圖 -->
+<div id="chart-container">
+    <canvas id="cpiChart"></canvas>
+</div>
+
+<!-- 4. 資料表格 -->
+<table id="price-table">
+    <thead>
+    <tr><th>時間</th><th>價格 (NT$)</th><th>CPI</th></tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let chart = null;
+    let basePrice = 100;
+    let dataStore = [];
+    let filteredData = [];
+
+    // 取得初始資料
+    fetch('/api/prices')
+        .then(res => res.json())
+        .then(data => {
+            dataStore = data;
+            basePrice = dataStore[0].price;
+            filteredData = [...dataStore];
+            renderTable(filteredData);
+            renderChart(filteredData);
+        })
+        .catch(err => console.error(err));
+
+    function renderTable(arr) {
+        const tbody = document.querySelector('#price-table tbody');
+        tbody.innerHTML = '';
+        arr.forEach(({ date, price, cpi }) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${date}</td><td>${price}</td><td>${cpi}</td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderChart(arr) {
+        const ctx = document.getElementById('cpiChart').getContext('2d');
+        const labels = arr.map(d => d.date);
+        const values = arr.map(d => d.cpi);
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'CPI 指數',
+                    data: values,
+                    fill: false,
+                    tension: 0.2,
+                    borderColor: '#009879',
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#009879',
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { title: { display: true, text: '時間 (YYYY/MM)' } },
+                    y: { title: { display: true, text: 'CPI (基期=100)' } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    // 新增資料
+    document.getElementById('add-data-btn').onclick = () => {
+        const date = prompt('請輸入 YYYY/MM');
+        const price = parseFloat(prompt('請輸入售價 NT$'));
+        if (!/^\d{4}\/\d{2}$/.test(date) || isNaN(price)) {
+            return alert('格式錯誤');
+        }
+        const cpi = +(price / basePrice * 100).toFixed(1);
+        dataStore.push({ date, price, cpi });
+        dataStore.sort((a,b)=>a.date.localeCompare(b.date));
+        filteredData = [...dataStore];
+        renderTable(filteredData);
+        renderChart(filteredData);
+    };
+
+    // 篩選
+    document.getElementById('filter-btn').onclick = () => {
+        const start = document.getElementById('start-month').value;
+        const end   = document.getElementById('end-month').value;
+        if (!start || !end) return alert('請選起迄月份');
+        const s = start.replace('-', '/'), e = end.replace('-', '/');
+        if (s > e) return alert('起月不能大於迄月');
+        filteredData = dataStore.filter(d => d.date >= s && d.date <= e);
+        renderTable(filteredData);
+        renderChart(filteredData);
+    };
+
+    // 重置
+    document.getElementById('reset-btn').onclick = () => {
+        filteredData = [...dataStore];
+        document.getElementById('start-month').value = '';
+        document.getElementById('end-month').value = '';
+        renderTable(filteredData);
+        renderChart(filteredData);
+    };
+</script>
+</body>
+</html>
