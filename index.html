@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>老賴紅茶（600 cc）CPI 月度走勢</title>
     <style>
         * { box-sizing: border-box; }
@@ -25,6 +25,12 @@
             width: 80px;
             height: auto;
             margin-right: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transition: transform 0.2s ease;
+        }
+        #page-header img#logo:hover {
+            transform: scale(1.05);
         }
         #page-header h1 {
             margin: 0;
@@ -34,7 +40,7 @@
             flex: 1;
         }
 
-        /* 新增、查詢按鈕區 */
+        /* 控制區 */
         #controls {
             width: 80%; max-width: 800px;
             margin: 0 auto 20px;
@@ -74,16 +80,21 @@
         /* 表格美化 */
         table {
             width: 80%; margin: 0 auto 40px;
-            border-collapse: collapse; background-color: #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,.1); border-radius: 4px;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,.1);
+            border-radius: 4px;
             overflow: hidden;
         }
         th, td {
-            padding: 12px 15px; text-align: center;
+            padding: 12px 15px;
+            text-align: center;
         }
         thead th {
-            background-color: #009879; color: #fff;
-            text-transform: uppercase; letter-spacing: .05em;
+            background-color: #009879;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: .05em;
             font-size: .95em;
         }
         tbody tr:nth-child(even) { background-color: #f3f3f3; }
@@ -100,27 +111,27 @@
 </head>
 <body>
 
-<!-- 1. Logo + 標題 -->
+<!-- ✅ 頁首：Logo + 標題 -->
 <div id="page-header">
-    <img id="logo" src="laolai-logo.png" alt="老賴紅茶 店標">
+    <img id="logo" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBbzCyMsOpD9lWGl6zQ06F8b0FvKnw1u36lg&s" alt="老賴紅茶 店標">
     <h1>老賴紅茶（600 cc）CPI 月度走勢</h1>
 </div>
 
-<!-- 2. 新增 & 篩選 區塊 -->
+<!-- 控制按鈕 -->
 <div id="controls">
     <button id="add-data-btn">新增資料</button>
-    <label>起：<input id="start-month" type="month"></label>
-    <label>迄：<input id="end-month" type="month"></label>
+    <label>起：<input id="start-month" type="month" /></label>
+    <label>迄：<input id="end-month" type="month" /></label>
     <button id="filter-btn">查詢</button>
     <button id="reset-btn">重置</button>
 </div>
 
-<!-- 3. 折線圖 -->
+<!-- 圖表區 -->
 <div id="chart-container">
     <canvas id="cpiChart"></canvas>
 </div>
 
-<!-- 4. 資料表格 -->
+<!-- 資料表格 -->
 <table id="price-table">
     <thead>
     <tr><th>時間</th><th>價格 (NT$)</th><th>CPI</th></tr>
@@ -133,10 +144,9 @@
 <script>
     let chart = null;
     let basePrice = 100;
-    let dataStore = [];
-    let filteredData = [];
+    let dataStore = [], filteredData = [];
 
-    // 取得初始資料
+    // 初始資料
     fetch('/api/prices')
         .then(res => res.json())
         .then(data => {
@@ -145,8 +155,7 @@
             filteredData = [...dataStore];
             renderTable(filteredData);
             renderChart(filteredData);
-        })
-        .catch(err => console.error(err));
+        });
 
     function renderTable(arr) {
         const tbody = document.querySelector('#price-table tbody');
@@ -176,7 +185,7 @@
                     pointBackgroundColor: '#fff',
                     pointBorderColor: '#009879',
                     pointRadius: 4,
-                    pointHoverRadius: 6,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
@@ -205,13 +214,11 @@
         renderChart(filteredData);
     };
 
-    // 篩選
+    // 篩選資料
     document.getElementById('filter-btn').onclick = () => {
-        const start = document.getElementById('start-month').value;
-        const end   = document.getElementById('end-month').value;
-        if (!start || !end) return alert('請選起迄月份');
-        const s = start.replace('-', '/'), e = end.replace('-', '/');
-        if (s > e) return alert('起月不能大於迄月');
+        const s = document.getElementById('start-month').value.replace('-', '/');
+        const e = document.getElementById('end-month').value.replace('-', '/');
+        if (!s || !e || s > e) return alert('請選正確的月份區間');
         filteredData = dataStore.filter(d => d.date >= s && d.date <= e);
         renderTable(filteredData);
         renderChart(filteredData);
